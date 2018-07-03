@@ -2,6 +2,7 @@ name: design_pattern
 description: A new Flutter project.
 
 dependencies:
+  rxdart: ^0.16.0+2
   flutter:
     sdk: flutter
 
