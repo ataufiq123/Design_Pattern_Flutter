@@ -1,72 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:meta/meta.dart';
+import 'package:design_pattern/common/models/cart.dart';
+import 'package:design_pattern/common/models/catalog.dart';
+import 'package:design_pattern/common/models/product.dart';
 import 'package:design_pattern/common/widgets/cart_button.dart';
+import 'package:design_pattern/common/widgets/cart_page.dart';
+import 'package:design_pattern/common/widgets/product_square.dart';
 import 'package:design_pattern/common/widgets/theme.dart';
-import 'package:design_pattern/cart/bloc_cart_page.dart';
-import 'package:design_pattern/cart/cart_bloc.dart';
-import 'package:design_pattern/cart/cart_provider.dart';
-import 'package:design_pattern/catalog/catalog_bloc.dart';
-import 'package:design_pattern/product_grid/product_grid.dart';
 
 void main() {
-  // Build top-level components.
-  // In a real world app, this would also rope in HTTP clients and such.
-  final catalog = CatalogBloc();
-  final cart = CartBloc();
-
-  // Start the app.
-  runApp(MyApp(catalog, cart));
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final CatalogBloc catalog;
-
-  final CartBloc cart;
-
-  MyApp(this.catalog, this.cart);
+  final cart = Cart();
 
   @override
   Widget build(BuildContext context) {
-    // Here we're providing the catalog component ...
-    return CatalogProvider(
-      catalog: catalog,
-      // ... and the cart component via InheritedWidget like so.
-      // But BLoC works with any other mechanism, including passing
-      // down the widget tree.
-      child: CartProvider(
-        cartBloc: cart,
-        child: MaterialApp(
-          title: 'Bloc Complex',
-          theme: appTheme,
-          home: MyHomePage(),
-          routes: {BlocCartPage.routeName: (context) => BlocCartPage()},
-        ),
+    return MaterialApp(
+      title: 'Vanilla',
+      theme: appTheme,
+      home: MyHomePage(cart: cart),
+      routes: <String, WidgetBuilder>{
+        CartPage.routeName: (context) => CartPage(cart),
+      },
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  final Cart cart;
+
+  MyHomePage({
+    Key key,
+    @required this.cart,
+  }) : super(key: key);
+
+  @override
+  createState() => MyHomePageState();
+}
+
+class MyHomePageState extends State<MyHomePage> {
+  _updateCart(Product product) {
+    setState(() => widget.cart.add(product));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Vanilla'),
+        actions: <Widget>[
+          // The shopping cart button in the app bar
+          CartButton(
+            itemCount: widget.cart.itemCount,
+            onPressed: () {
+              Navigator.of(context).pushNamed(CartPage.routeName);
+            },
+          )
+        ],
+      ),
+      body: ProductGrid(
+        cart: widget.cart,
+        updateProduct: _updateCart,
       ),
     );
   }
 }
 
-/// The sample app's main page
-class MyHomePage extends StatelessWidget {
+class ProductGrid extends StatelessWidget {
+  final Cart cart;
+  final Function(Product) updateProduct;
+
+  ProductGrid({
+    Key key,
+    @required this.cart,
+    @required this.updateProduct,
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    final cartBloc = CartProvider.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Bloc Complex"),
-        actions: <Widget>[
-          StreamBuilder<int>(
-            stream: cartBloc.itemCount,
-            initialData: 0,
-            builder: (context, snapshot) => CartButton(
-                  itemCount: snapshot.data,
-                  onPressed: () {
-                    Navigator.of(context).pushNamed(BlocCartPage.routeName);
-                  },
-                ),
-          )
-        ],
-      ),
-      body: ProductGrid(),
+    return GridView.count(
+      crossAxisCount: 2,
+      children: catalog.products.map((product) {
+        return ProductSquare(
+          product: product,
+          onTap: () => updateProduct(product),
+        );
+      }).toList(),
     );
   }
 }
