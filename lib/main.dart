@@ -1,72 +1,61 @@
 import 'package:flutter/material.dart';
+
+import 'package:design_pattern/common/models/catalog.dart';
+
 import 'package:design_pattern/common/widgets/cart_button.dart';
+import 'package:design_pattern/common/widgets/product_square.dart';
 import 'package:design_pattern/common/widgets/theme.dart';
-import 'package:design_pattern/cart/bloc_cart_page.dart';
-import 'package:design_pattern/cart/cart_bloc.dart';
-import 'package:design_pattern/cart/cart_provider.dart';
-import 'package:design_pattern/catalog/catalog_bloc.dart';
-import 'package:design_pattern/product_grid/product_grid.dart';
 
-void main() {
-  // Build top-level components.
-  // In a real world app, this would also rope in HTTP clients and such.
-  final catalog = CatalogBloc();
-  final cart = CartBloc();
+import 'package:design_pattern/scoped_cart_page.dart';
+import 'package:design_pattern/model.dart';
 
-  // Start the app.
-  runApp(MyApp(catalog, cart));
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  final CatalogBloc catalog;
-
-  final CartBloc cart;
-
-  MyApp(this.catalog, this.cart);
-
   @override
   Widget build(BuildContext context) {
-    // Here we're providing the catalog component ...
-    return CatalogProvider(
-      catalog: catalog,
-      // ... and the cart component via InheritedWidget like so.
-      // But BLoC works with any other mechanism, including passing
-      // down the widget tree.
-      child: CartProvider(
-        cartBloc: cart,
-        child: MaterialApp(
-          title: 'Bloc Complex',
-          theme: appTheme,
-          home: MyHomePage(),
-          routes: {BlocCartPage.routeName: (context) => BlocCartPage()},
-        ),
-      ),
+    return MaterialApp(
+      title: 'Scoped Model',
+      theme: appTheme,
+      home: MyHomePage(),
+      routes: <String, WidgetBuilder>{
+        CartPage.routeName: (context) => CartPage()
+      },
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-/// The sample app's main page
 class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final cartBloc = CartProvider.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text("Bloc Complex"),
+        title: const Text('Product Catalog'),
         actions: <Widget>[
-          StreamBuilder<int>(
-            stream: cartBloc.itemCount,
-            initialData: 0,
-            builder: (context, snapshot) => CartButton(
-                  itemCount: snapshot.data,
-                  onPressed: () {
-                    Navigator.of(context).pushNamed(BlocCartPage.routeName);
-                  },
-                ),
+          CartButton(
+            itemCount: 0,
+            onPressed: () {
+              Navigator.of(context).pushNamed(CartPage.routeName);
+            },
           )
         ],
       ),
       body: ProductGrid(),
     );
   }
+}
+
+class ProductGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => GridView.count(
+        crossAxisCount: 2,
+        children: catalog.products.map((product) {
+          return ProductSquare(
+            product: product,
+            onTap: () => Scaffold.of(context).showSnackBar(
+                SnackBar(content: Text('${product.name} tapped'))),
+          );
+        }).toList(),
+      );
 }
